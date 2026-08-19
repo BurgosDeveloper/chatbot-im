@@ -13,6 +13,8 @@ export default function CatalogPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [whatsappNumber, setWhatsappNumber] = useState<string>("584120000000");
+  const [rateUsdCop, setRateUsdCop] = useState<number>(4000);
+  const [rateUsdVes, setRateUsdVes] = useState<number>(40);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
@@ -45,8 +47,10 @@ export default function CatalogPage() {
 
       if (prodData.products) setProducts(prodData.products);
       if (catData.categories) setCategories(catData.categories);
-      if (setData.settings?.whatsapp_number) {
-        setWhatsappNumber(setData.settings.whatsapp_number);
+      if (setData.settings) {
+        if (setData.settings.whatsapp_number) setWhatsappNumber(setData.settings.whatsapp_number);
+        if (setData.settings.rate_usd_cop) setRateUsdCop(setData.settings.rate_usd_cop);
+        if (setData.settings.rate_usd_ves) setRateUsdVes(setData.settings.rate_usd_ves);
       }
     } catch (err: any) {
       console.error("Error fetching data:", err);
@@ -188,6 +192,8 @@ export default function CatalogPage() {
                 key={product.id}
                 product={product}
                 quantity={getProductQuantity(product.id)}
+                rateUsdCop={rateUsdCop}
+                rateUsdVes={rateUsdVes}
                 onUpdateQuantity={handleUpdateQuantity}
                 onOpenDetail={setDetailProduct}
               />
@@ -200,6 +206,8 @@ export default function CatalogPage() {
       <WhatsAppFloatingBar
         cart={cart}
         whatsappNumber={whatsappNumber}
+        rateUsdCop={rateUsdCop}
+        rateUsdVes={rateUsdVes}
         onUpdateQuantity={handleUpdateQuantity}
         onClearCart={handleClearCart}
         isOpenDrawer={isDrawerOpen}
@@ -211,6 +219,8 @@ export default function CatalogPage() {
         product={detailProduct}
         onClose={() => setDetailProduct(null)}
         quantity={detailProduct ? getProductQuantity(detailProduct.id) : 0}
+        rateUsdCop={rateUsdCop}
+        rateUsdVes={rateUsdVes}
         onUpdateQuantity={handleUpdateQuantity}
       />
     </div>

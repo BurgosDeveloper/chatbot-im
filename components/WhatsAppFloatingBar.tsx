@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
-import { CartItem } from "@/types";
-import { MessageCircle, ShoppingBag, ChevronUp, ChevronDown, Trash2, Plus, Minus, Send } from "lucide-react";
+import React from "react";
+import { CartItem, calculatePrices } from "@/types";
+import { MessageCircle, ShoppingBag, ChevronUp, ChevronDown, Trash2, Plus, Minus } from "lucide-react";
 
 interface WhatsAppFloatingBarProps {
   cart: CartItem[];
   whatsappNumber: string;
+  rateUsdCop?: number;
+  rateUsdVes?: number;
   onUpdateQuantity: (productId: number, qty: number) => void;
   onClearCart: () => void;
   isOpenDrawer: boolean;
@@ -16,12 +18,27 @@ interface WhatsAppFloatingBarProps {
 export const WhatsAppFloatingBar: React.FC<WhatsAppFloatingBarProps> = ({
   cart,
   whatsappNumber,
+  rateUsdCop = 4000,
+  rateUsdVes = 40,
   onUpdateQuantity,
   onClearCart,
   isOpenDrawer,
   setIsOpenDrawer,
 }) => {
   const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Calculate total in USD, COP, VES
+  const totalUsd = cart.reduce((sum, item) => {
+    const p = calculatePrices(item.product.price, item.product.currency, rateUsdCop, rateUsdVes);
+    return sum + p.usd * item.quantity;
+  }, 0);
+
+  const totalCop = totalUsd * rateUsdCop;
+  const totalVes = totalUsd * rateUsdVes;
+
+  const totalUsdFormatted = `$${totalUsd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const totalCopFormatted = `$${Math.round(totalCop).toLocaleString("es-CO")} COP`;
+  const totalVesFormatted = `Bs. ${totalVes.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const handleSendToWhatsApp = () => {
     if (cart.length === 0) return;
@@ -31,8 +48,16 @@ export const WhatsAppFloatingBar: React.FC<WhatsAppFloatingBarProps> = ({
 
     cart.forEach((item, index) => {
       const codeStr = item.product.code ? `[Cód: ${item.product.code}] ` : "";
-      message += `${index + 1}️⃣ ${codeStr}*${item.product.name}*\n   ↳ Cantidad: *${item.quantity}* unid.\n`;
+      const p = calculatePrices(item.product.price, item.product.currency, rateUsdCop, rateUsdVes);
+      message += `${index + 1}️⃣ ${codeStr}*${item.product.name}*\n   ↳ Cant: *${item.quantity}* unid. (${p.usdFormatted} / ${p.copFormatted} / ${p.vesFormatted})\n`;
     });
+
+    if (totalUsd > 0) {
+      message += `\n💰 *TOTAL ESTIMADO:*\n`;
+      message += `• *${totalUsdFormatted}*\n`;
+      message += `• *${totalCopFormatted}*\n`;
+      message += `• *${totalVesFormatted}*\n`;
+    }
 
     message += `\n💬 *¿Tienen disponibilidad inmediata y cuáles son los métodos de pago y entrega?* ¡Muchas gracias!`;
 
@@ -57,7 +82,7 @@ export const WhatsAppFloatingBar: React.FC<WhatsAppFloatingBarProps> = ({
         {/* Expanded Drawer */}
         {isOpenDrawer && (
           <div
-            className="mb-2 bg-white rounded-3xl p-4 shadow-2xl border border-white/90 max-h-80 overflow-y-auto flex flex-col space-y-3 animate-slide-up"
+            className="mb-2 bg-white rounded-3xl p-4 shadow-2xl border border-white/90 max-h-96 overflow-y-auto flex flex-col space-y-3 animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
@@ -77,42 +102,59 @@ export const WhatsAppFloatingBar: React.FC<WhatsAppFloatingBarProps> = ({
             </div>
 
             {/* Cart Items List */}
-            <div className="space-y-2.5 overflow-y-auto pr-1">
-              {cart.map((item) => (
-                <div
-                  key={item.product.id}
-                  className="flex items-center justify-between bg-slate-50 p-2.5 rounded-2xl border border-slate-100"
-                >
-                  <div className="flex-1 pr-2 min-w-0">
-                    <p className="text-xs font-bold text-slate-900 truncate">
-                      {item.product.name}
-                    </p>
-                    <p className="text-[10px] font-mono text-slate-500">
-                      Cód: {item.product.code}
-                    </p>
-                  </div>
+            <div className="space-y-2.5 overflow-y-auto pr-1 flex-1">
+              {cart.map((item) => {
+                const p = calculatePrices(item.product.price, item.product.currency, rateUsdCop, rateUsdVes);
+                return (
+                  <div
+                    key={item.product.id}
+                    className="flex items-center justify-between bg-slate-50 p-2.5 rounded-2xl border border-slate-100"
+                  >
+                    <div className="flex-1 pr-2 min-w-0">
+                      <p className="text-xs font-bold text-slate-900 truncate">
+                        {item.product.name}
+                      </p>
+                      <p className="text-[10px] text-blue-700 font-bold">
+                        {p.usdFormatted} <span className="text-slate-400 font-normal">({p.copFormatted} | {p.vesFormatted})</span>
+                      </p>
+                    </div>
 
-                  <div className="flex items-center clay-inset px-2 py-0.5 gap-2 shrink-0">
-                    <button
-                      onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                      className="w-5 h-5 rounded-md bg-white shadow-xs flex items-center justify-center text-slate-700 active:scale-90"
-                    >
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <span className="font-extrabold text-xs text-blue-800 min-w-[12px] text-center">
-                      {item.quantity}
-                    </span>
-                    <button
-                      disabled={item.quantity >= item.product.stock}
-                      onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                      className="w-5 h-5 rounded-md bg-white shadow-xs flex items-center justify-center text-blue-700 disabled:opacity-30 active:scale-90"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
+                    <div className="flex items-center clay-inset px-2 py-0.5 gap-2 shrink-0">
+                      <button
+                        onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
+                        className="w-5 h-5 rounded-md bg-white shadow-xs flex items-center justify-center text-slate-700 active:scale-90"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className="font-extrabold text-xs text-blue-800 min-w-[12px] text-center">
+                        {item.quantity}
+                      </span>
+                      <button
+                        disabled={item.quantity >= item.product.stock}
+                        onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
+                        className="w-5 h-5 rounded-md bg-white shadow-xs flex items-center justify-center text-blue-700 disabled:opacity-30 active:scale-90"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
+
+            {/* Total Estimated Box */}
+            {totalUsd > 0 && (
+              <div className="pt-2 border-t border-slate-100 bg-blue-50/70 p-3 rounded-2xl">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-1">
+                  <span>Total Estimado:</span>
+                  <span className="text-sm font-extrabold text-blue-700">{totalUsdFormatted}</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600">
+                  <span>{totalCopFormatted}</span>
+                  <span>{totalVesFormatted}</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

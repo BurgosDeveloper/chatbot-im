@@ -1,13 +1,15 @@
 "use client";
 
 import React from "react";
-import { Product } from "@/types";
-import { Plus, Minus, Info, Check, Eye } from "lucide-react";
+import { Product, calculatePrices } from "@/types";
+import { Plus, Minus, Info, Eye } from "lucide-react";
 import Image from "next/image";
 
 interface ProductCardProps {
   product: Product;
   quantity: number;
+  rateUsdCop?: number;
+  rateUsdVes?: number;
   onUpdateQuantity: (productId: number, qty: number) => void;
   onOpenDetail: (product: Product) => void;
 }
@@ -15,11 +17,20 @@ interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   quantity,
+  rateUsdCop = 4000,
+  rateUsdVes = 40,
   onUpdateQuantity,
   onOpenDetail,
 }) => {
   const isOutOfStock = product.stock <= 0;
   const isSelected = quantity > 0;
+
+  const prices = calculatePrices(
+    product.price,
+    product.currency,
+    rateUsdCop,
+    rateUsdVes
+  );
 
   return (
     <div
@@ -73,7 +84,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       </div>
 
       {/* Product Information */}
-      <div className="p-4 flex-1 flex flex-col justify-between">
+      <div className="p-4 flex-1 flex flex-col justify-between space-y-2.5">
         <div>
           <h3
             onClick={() => onOpenDetail(product)}
@@ -89,8 +100,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </div>
 
+        {/* Multi-Currency Price Clay Display */}
+        <div className="bg-slate-50/80 p-2.5 rounded-2xl border border-slate-100 shadow-inner">
+          <div className="flex items-baseline justify-between">
+            <span className="text-[10px] uppercase font-bold text-slate-400">Precio</span>
+            <span className="text-base font-extrabold text-blue-700">
+              {prices.usdFormatted}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600 pt-1 border-t border-slate-200/60 mt-1">
+            <span className="text-slate-700 font-mono">{prices.copFormatted}</span>
+            <span className="text-slate-700 font-mono">{prices.vesFormatted}</span>
+          </div>
+        </div>
+
         {/* Bottom Actions: Quick Detail & Quantity Controls */}
-        <div className="mt-3 pt-3 border-t border-slate-100/80 flex items-center justify-between gap-2">
+        <div className="pt-2 border-t border-slate-100/80 flex items-center justify-between gap-2">
           <button
             onClick={() => onOpenDetail(product)}
             className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 active:scale-95 transition-transform"

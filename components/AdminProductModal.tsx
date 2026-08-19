@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Product, Category } from "@/types";
-import { X, UploadCloud, Loader2, Image as ImageIcon, AlertCircle } from "lucide-react";
+import { Product, Category, CurrencyCode } from "@/types";
+import { X, UploadCloud, Loader2, Image as ImageIcon, AlertCircle, DollarSign } from "lucide-react";
 import Image from "next/image";
 
 interface AdminProductModalProps {
@@ -24,6 +24,8 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
   const [code, setCode] = useState("");
   const [categoryId, setCategoryId] = useState<string>("");
   const [stock, setStock] = useState<number>(0);
+  const [price, setPrice] = useState<number | string>("");
+  const [currency, setCurrency] = useState<CurrencyCode>("USD");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [imagePublicId, setImagePublicId] = useState("");
@@ -39,6 +41,8 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       setCode(productToEdit.code);
       setCategoryId(productToEdit.category_id?.toString() || "");
       setStock(productToEdit.stock);
+      setPrice(productToEdit.price ?? 0);
+      setCurrency((productToEdit.currency as CurrencyCode) || "USD");
       setDescription(productToEdit.description || "");
       setImageUrl(productToEdit.image_url);
       setImagePublicId(productToEdit.image_public_id);
@@ -48,6 +52,8 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       setCode("");
       setCategoryId(categories[0]?.id.toString() || "");
       setStock(1);
+      setPrice("");
+      setCurrency("USD");
       setDescription("");
       setImageUrl("");
       setImagePublicId("");
@@ -115,6 +121,8 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         code: code.trim().toUpperCase(),
         category_id: categoryId ? parseInt(categoryId, 10) : null,
         stock: Number(stock),
+        price: parseFloat(price.toString()) || 0,
+        currency,
         description: description.trim(),
         image_url: imageUrl,
         image_public_id: imagePublicId,
@@ -257,6 +265,46 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
                 className="w-full clay-inset px-3 py-2 text-xs font-mono font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/50 rounded-xl uppercase"
               />
             </div>
+          </div>
+
+          {/* Price & Currency (USD, COP, VES) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-blue-50/50 p-3 rounded-2xl border border-blue-100">
+            <div>
+              <label className="block text-xs font-bold text-slate-800 mb-1">
+                Precio *
+              </label>
+              <div className="flex items-center clay-inset px-3 py-2">
+                <DollarSign className="w-3.5 h-3.5 text-blue-600 mr-1 shrink-0" />
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  required
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="Ej: 15.50 ó 60000"
+                  className="w-full bg-transparent text-xs font-bold text-slate-800 outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-800 mb-1">
+                Moneda Base del Producto
+              </label>
+              <select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
+                className="w-full clay-inset px-3 py-2 text-xs font-bold text-blue-900 outline-none focus:ring-2 focus:ring-blue-500/50 rounded-xl bg-slate-50"
+              >
+                <option value="USD">Dólares ($ USD)</option>
+                <option value="COP">Pesos ($ COP)</option>
+                <option value="VES">Bolívares (Bs. VES)</option>
+              </select>
+            </div>
+            <p className="text-[10px] text-slate-500 col-span-1 sm:col-span-2">
+              💡 La tienda convertirá automáticamente este monto a las otras 2 monedas según las tasas del sistema.
+            </p>
           </div>
 
           {/* Category & Stock */}

@@ -1,14 +1,16 @@
 "use client";
 
 import React from "react";
-import { Product } from "@/types";
-import { X, Tag, Package, CheckCircle2, AlertCircle, Plus, Minus } from "lucide-react";
+import { Product, calculatePrices } from "@/types";
+import { X, CheckCircle2, AlertCircle, Plus, Minus, DollarSign } from "lucide-react";
 import Image from "next/image";
 
 interface ProductDetailModalProps {
   product: Product | null;
   onClose: () => void;
   quantity: number;
+  rateUsdCop?: number;
+  rateUsdVes?: number;
   onUpdateQuantity: (productId: number, qty: number) => void;
 }
 
@@ -16,11 +18,20 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   product,
   onClose,
   quantity,
+  rateUsdCop = 4000,
+  rateUsdVes = 40,
   onUpdateQuantity,
 }) => {
   if (!product) return null;
 
   const isOutOfStock = product.stock <= 0;
+
+  const prices = calculatePrices(
+    product.price,
+    product.currency,
+    rateUsdCop,
+    rateUsdVes
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
@@ -80,6 +91,27 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   Disponible ({product.stock} unid.)
                 </span>
               )}
+            </div>
+          </div>
+
+          {/* Multi-Currency Price Box */}
+          <div className="clay-card p-3.5 bg-gradient-to-r from-blue-50/60 to-sky-50/60 border border-blue-100">
+            <span className="text-[10px] uppercase font-bold text-blue-900/60 tracking-wider">
+              Precio en Monedas
+            </span>
+            <div className="grid grid-cols-3 gap-2 mt-2 text-center">
+              <div className="bg-white/80 p-2 rounded-xl border border-white shadow-xs">
+                <span className="text-[10px] font-bold text-slate-400 block">USD</span>
+                <span className="text-sm font-extrabold text-blue-800">{prices.usdFormatted}</span>
+              </div>
+              <div className="bg-white/80 p-2 rounded-xl border border-white shadow-xs">
+                <span className="text-[10px] font-bold text-slate-400 block">COP</span>
+                <span className="text-xs font-extrabold text-slate-800">{prices.copFormatted}</span>
+              </div>
+              <div className="bg-white/80 p-2 rounded-xl border border-white shadow-xs">
+                <span className="text-[10px] font-bold text-slate-400 block">VES</span>
+                <span className="text-xs font-extrabold text-slate-800">{prices.vesFormatted}</span>
+              </div>
             </div>
           </div>
 

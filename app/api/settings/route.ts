@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDbPool, initDb } from "@/lib/db";
 import { getAuthenticatedAdmin, hashPassword, comparePassword } from "@/lib/auth";
 
-// Public / Admin: GET settings (like WhatsApp number)
+// Public / Admin: GET settings (WhatsApp number and exchange rates)
 export async function GET() {
   try {
     await initDb();
@@ -18,6 +18,8 @@ export async function GET() {
       success: true,
       settings: {
         whatsapp_number: settings["whatsapp_number"] || "584120000000",
+        rate_usd_cop: parseFloat(settings["rate_usd_cop"] || "4000"),
+        rate_usd_ves: parseFloat(settings["rate_usd_ves"] || "40"),
       },
     });
   } catch (error: any) {
@@ -35,7 +37,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { whatsapp_number, current_password, new_password } = body;
+    const { whatsapp_number, rate_usd_cop, rate_usd_ves, current_password, new_password } = body;
 
     const db = getDbPool();
 
@@ -46,6 +48,26 @@ export async function POST(req: NextRequest) {
          VALUES ('whatsapp_number', $1)
          ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;`,
         [whatsapp_number.trim().replace(/[^0-9]/g, "")]
+      );
+    }
+
+    // Update USD to COP rate if provided
+    if (rate_usd_cop !== undefined) {
+      await db.query(
+        `INSERT INTO app_settings (key, value)
+         VALUES ('rate_usd_cop', $1)
+         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;`,
+        [rate_usd_cop.toString()]
+      );
+    }
+
+    // Update USD to VES rate if provided
+    if (rate_usd_ves !== undefined) {
+      await db.query(
+        `INSERT INTO app_settings (key, value)
+         VALUES ('rate_usd_ves', $1)
+         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;`,
+        [rate_usd_ves.toString()]
       );
     }
 

@@ -5,7 +5,7 @@ Este documento define la arquitectura, diseño visual, contratos de datos, segur
 ---
 
 ## 🎯 1. Propósito y Alcance
-- **Objetivo:** Aplicación web mobile-first de catálogo de productos con diseño **Claymorphism** en modo claro (Blanco, Azul Metálico y Negro carbón), selección múltiple para cotización directa en WhatsApp, y panel de administración oculto con CRUD integral y gestión en la nube (NeonDB PostgreSQL y Cloudinary).
+- **Objetivo:** Aplicación web mobile-first de catálogo de productos con diseño **Claymorphism** en modo claro (Blanco, Azul Metálico y Negro carbón), visualización de precios multidivisa (Dólares USD, Pesos Colombianos COP y Bolívares VES), selección múltiple para cotización directa en WhatsApp con cálculo de totales, y panel de administración oculto con CRUD integral y gestión en la nube (NeonDB PostgreSQL y Cloudinary).
 - **Entorno de Despliegue:** Netlify (vía GitHub: `https://github.com/BurgosDeveloper/chatbot-im.git`).
 - **Filosofía de Datos:** **100% SQL en PostgreSQL (NeonDB)**. No se utilizan archivos JSON locales de prueba ni mocks temporales.
 
@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS categories (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. Productos
+-- 2. Productos (con soporte multidivisa)
 CREATE TABLE IF NOT EXISTS products (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -70,6 +70,8 @@ CREATE TABLE IF NOT EXISTS products (
     category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
     code VARCHAR(50) UNIQUE NOT NULL,
     stock INTEGER NOT NULL DEFAULT 0,
+    price NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    currency VARCHAR(10) NOT NULL DEFAULT 'USD', -- 'USD', 'COP', 'VES'
     description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -83,16 +85,32 @@ CREATE TABLE IF NOT EXISTS admin_users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 4. Ajustes Generales
+-- 4. Ajustes Generales y Tasas de Cambio
 CREATE TABLE IF NOT EXISTS app_settings (
     key VARCHAR(50) PRIMARY KEY,
     value TEXT NOT NULL
 );
+-- Keys:
+-- 'whatsapp_number': Ej: '584120000000'
+-- 'rate_usd_cop': Valor de 1 USD en Pesos (ej: '4000')
+-- 'rate_usd_ves': Valor de 1 USD en Bolívares (ej: '40')
 ```
 
 ---
 
-## ☁️ 4. Reglas de Integración con Cloudinary
+## 💱 4. Reglas de Conversión de Monedas
+
+1. El administrador ingresa el precio del producto y selecciona la **moneda base** (`USD`, `COP` o `VES`).
+2. El sistema utiliza las tasas configuradas en el panel para calcular y mostrar los 3 valores:
+   - **USD ($)**: Formato estándar estadounidense `$10.00`.
+   - **COP ($ COP)**: Formato redondeado con separadores `$40.000 COP`.
+   - **VES (Bs.)**: Formato venezolano `Bs. 400,00`.
+3. Cada tarjeta de producto y modal muestra simultáneamente los 3 montos.
+4. El carrito y el mensaje de WhatsApp calculan el total del pedido en las 3 monedas.
+
+---
+
+## ☁️ 5. Reglas de Integración con Cloudinary
 
 - **Cloud Name:** `dhqskqkeb`
 - **API Key:** `37291779797679`
@@ -104,7 +122,7 @@ CREATE TABLE IF NOT EXISTS app_settings (
 
 ---
 
-## 🔐 5. Seguridad y Autenticación del Administrador
+## 🔐 6. Seguridad y Autenticación del Administrador
 
 - **Ruta Secreta:** `/admin/login` (no accesible desde enlaces de la interfaz pública).
 - **Panel:** `/admin/dashboard`.
@@ -115,32 +133,37 @@ CREATE TABLE IF NOT EXISTS app_settings (
 
 ---
 
-## 📲 6. Integración y Formato del Mensaje de WhatsApp
+## 📲 7. Integración y Formato del Mensaje de WhatsApp
 
 Al hacer click en **"Preguntar en WhatsApp"**:
 1. Recolecta todos los productos seleccionados con cantidades > 0.
-2. Construye un mensaje limpio y amigable:
+2. Construye un mensaje limpio y amigable con precios y total estimado:
    ```text
-   👋 ¡Hola! Vengo de su catálogo web y deseo consultar la disponibilidad de los siguientes productos:
+   👋 *¡Hola! Vengo de su catálogo web y me interesa consultar por los siguientes productos:*
 
-   📦 *PEDIDO DE CONSULTA:*
-   1️⃣ [Cód: PROD-01] Nombre Producto 1 — Cantidad: 2
-   2️⃣ [Cód: PROD-02] Nombre Producto 2 — Cantidad: 1
+   🛒 *LISTA DE CONSULTA (2 artículos):*
+   1️⃣ [Cód: CAM-001] *Camisa Azul*
+      ↳ Cant: *2* unid. ($20.00 / $80.000 COP / Bs. 800,00)
 
-   ¿Tienen stock disponible y cuáles son los métodos de pago y entrega? ¡Muchas gracias!
+   💰 *TOTAL ESTIMADO:*
+   • *$20.00*
+   • *$80.000 COP*
+   • *Bs. 800,00*
+
+   💬 *¿Tienen disponibilidad inmediata y cuáles son los métodos de pago y entrega?* ¡Muchas gracias!
    ```
 3. Codifica la URL y redirige a: `https://wa.me/{WHATSAPP_NUMBER}?text={ENCODED_MESSAGE}`.
 
 ---
 
-## 🚀 7. Guía de Ejecución y Despliegue
+## 🚀 8. Guía de Ejecución y Despliegue
 
 ### Entorno Local y Red LAN (Móvil)
 - Para probar desde un celular en la misma red WiFi:
   ```bash
-  npm run dev -- -H 0.0.0.0 -p 3000
+  npm run dev
   ```
-- Ingresar desde el navegador del celular a: `http://<TU_IP_LOCAL>:3000`.
+- Ingresar desde el navegador del celular a: `http://192.168.0.106:3000`.
 
 ### Despliegue en Netlify
 1. Conectar el repositorio `https://github.com/BurgosDeveloper/chatbot-im.git` en Netlify.

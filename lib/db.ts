@@ -48,10 +48,18 @@ export async function initDb() {
         category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
         code VARCHAR(50) UNIQUE NOT NULL,
         stock INTEGER NOT NULL DEFAULT 0,
+        price NUMERIC(12, 2) NOT NULL DEFAULT 0,
+        currency VARCHAR(10) NOT NULL DEFAULT 'USD',
         description TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+
+    // Ensure columns exist if table was already created
+    await db.query(`
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS price NUMERIC(12, 2) NOT NULL DEFAULT 0;
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS currency VARCHAR(10) NOT NULL DEFAULT 'USD';
     `);
 
     // 3. Admin Users table
@@ -72,11 +80,14 @@ export async function initDb() {
       );
     `);
 
-    // Default WhatsApp number if not present
+    // Default Settings (WhatsApp, USD to COP rate, USD to VES rate)
     const defaultWhatsapp = process.env.DEFAULT_WHATSAPP_NUMBER || "584120000000";
     await db.query(
       `INSERT INTO app_settings (key, value)
-       VALUES ('whatsapp_number', $1)
+       VALUES 
+        ('whatsapp_number', $1),
+        ('rate_usd_cop', '4000'),
+        ('rate_usd_ves', '40')
        ON CONFLICT (key) DO NOTHING;`,
       [defaultWhatsapp]
     );

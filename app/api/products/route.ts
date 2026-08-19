@@ -22,6 +22,8 @@ export async function GET(req: NextRequest) {
         c.name AS category_name,
         p.code,
         p.stock,
+        p.price,
+        p.currency,
         p.description,
         p.created_at,
         p.updated_at
@@ -63,7 +65,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, image_url, image_public_id, category_id, code, stock, description } = body;
+    const { name, image_url, image_public_id, category_id, code, stock, price, currency, description } = body;
 
     if (!name || !image_url || !image_public_id || !code) {
       return NextResponse.json(
@@ -77,8 +79,8 @@ export async function POST(req: NextRequest) {
 
     const insertRes = await db.query(
       `INSERT INTO products (
-        name, image_url, image_public_id, category_id, code, stock, description, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+        name, image_url, image_public_id, category_id, code, stock, price, currency, description, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
       RETURNING *;`,
       [
         name.trim(),
@@ -87,6 +89,8 @@ export async function POST(req: NextRequest) {
         category_id ? parseInt(category_id, 10) : null,
         code.trim().toUpperCase(),
         parseInt(stock || 0, 10),
+        parseFloat(price || 0),
+        currency || "USD",
         description ? description.trim() : "",
       ]
     );

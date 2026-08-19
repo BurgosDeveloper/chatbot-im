@@ -51,7 +51,7 @@ export async function PUT(
     }
 
     const body = await req.json();
-    const { name, image_url, image_public_id, category_id, code, stock, description } = body;
+    const { name, image_url, image_public_id, category_id, code, stock, price, currency, description } = body;
 
     const db = getDbPool();
 
@@ -82,9 +82,11 @@ export async function PUT(
         category_id = $4,
         code = COALESCE($5, code),
         stock = COALESCE($6, stock),
-        description = COALESCE($7, description),
+        price = COALESCE($7, price),
+        currency = COALESCE($8, currency),
+        description = COALESCE($9, description),
         updated_at = NOW()
-       WHERE id = $8
+       WHERE id = $10
        RETURNING *;`,
       [
         name ? name.trim() : currentProduct.name,
@@ -93,6 +95,8 @@ export async function PUT(
         category_id !== undefined ? (category_id ? parseInt(category_id, 10) : null) : currentProduct.category_id,
         code ? code.trim().toUpperCase() : currentProduct.code,
         stock !== undefined ? parseInt(stock, 10) : currentProduct.stock,
+        price !== undefined ? parseFloat(price) : currentProduct.price,
+        currency ? currency : currentProduct.currency,
         description !== undefined ? description.trim() : currentProduct.description,
         productId,
       ]
