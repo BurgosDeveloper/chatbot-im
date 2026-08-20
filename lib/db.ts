@@ -80,6 +80,20 @@ export async function initDb() {
       );
     `);
 
+    // 5. Page Views Analytics table
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS page_views (
+        id SERIAL PRIMARY KEY,
+        visitor_id VARCHAR(100) NOT NULL,
+        path VARCHAR(255) NOT NULL DEFAULT '/',
+        user_agent TEXT,
+        ip_address VARCHAR(100),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_page_views_created_at ON page_views(created_at);
+      CREATE INDEX IF NOT EXISTS idx_page_views_visitor_id ON page_views(visitor_id);
+    `);
+
     // Default Settings (WhatsApp, USD to COP rate, USD to VES rate)
     const defaultWhatsapp = process.env.DEFAULT_WHATSAPP_NUMBER || "584120000000";
     await db.query(

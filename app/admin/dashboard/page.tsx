@@ -23,13 +23,29 @@ import {
   Lock,
   TrendingUp,
   DollarSign,
+  BarChart3,
+  Users,
+  Eye,
+  Smartphone,
+  Calendar,
+  Clock,
+  RefreshCw,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
+interface AnalyticsStats {
+  totalViews: number;
+  uniqueVisitors: number;
+  viewsToday: number;
+  uniqueToday: number;
+  last7Days: { date_str: string; day_name: string; views: number; unique_visitors: number }[];
+  recentActivity: { id: number; visitor_id: string; path: string; device: string; created_at: string }[];
+}
+
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"products" | "categories" | "settings">("products");
+  const [activeTab, setActiveTab] = useState<"products" | "categories" | "analytics" | "settings">("products");
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -37,6 +53,10 @@ export default function AdminDashboardPage() {
   const [rateUsdCop, setRateUsdCop] = useState<number | string>(4000);
   const [rateUsdVes, setRateUsdVes] = useState<number | string>(40);
   const [searchProduct, setSearchProduct] = useState<string>("");
+
+  // Analytics Stats State
+  const [analytics, setAnalytics] = useState<AnalyticsStats | null>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [adminUser, setAdminUser] = useState<string | null>(null);
@@ -99,6 +119,27 @@ export default function AdminDashboardPage() {
       setLoading(false);
     }
   };
+
+  const loadAnalytics = async () => {
+    setLoadingAnalytics(true);
+    try {
+      const res = await fetch("/api/analytics/stats");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.stats) setAnalytics(data.stats);
+      }
+    } catch (err) {
+      console.error("Error loading analytics:", err);
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "analytics") {
+      loadAnalytics();
+    }
+  }, [activeTab]);
 
   const handleLogout = async () => {
     try {
@@ -242,34 +283,45 @@ export default function AdminDashboardPage() {
       </header>
 
       {/* Tab Navigation */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="grid grid-cols-4 gap-1.5 mb-4">
         <button
           onClick={() => setActiveTab("products")}
-          className={`flex-1 py-2.5 px-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+          className={`py-2.5 px-2 rounded-2xl text-[11px] font-bold flex flex-col sm:flex-row items-center justify-center gap-1 transition-all ${
             activeTab === "products" ? "clay-pill-active" : "clay-pill-inactive"
           }`}
         >
           <Package className="w-4 h-4" />
-          <span>Productos ({products.length})</span>
+          <span className="truncate">Prod. ({products.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab("categories")}
-          className={`flex-1 py-2.5 px-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+          className={`py-2.5 px-2 rounded-2xl text-[11px] font-bold flex flex-col sm:flex-row items-center justify-center gap-1 transition-all ${
             activeTab === "categories" ? "clay-pill-active" : "clay-pill-inactive"
           }`}
         >
           <Layers className="w-4 h-4" />
-          <span>Categorías ({categories.length})</span>
+          <span className="truncate">Cat. ({categories.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("analytics")}
+          className={`py-2.5 px-2 rounded-2xl text-[11px] font-bold flex flex-col sm:flex-row items-center justify-center gap-1 transition-all ${
+            activeTab === "analytics" ? "clay-pill-active" : "clay-pill-inactive"
+          }`}
+        >
+          <BarChart3 className="w-4 h-4" />
+          <span className="truncate">Métricas</span>
         </button>
 
         <button
           onClick={() => setActiveTab("settings")}
-          className={`py-2.5 px-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+          className={`py-2.5 px-2 rounded-2xl text-[11px] font-bold flex flex-col sm:flex-row items-center justify-center gap-1 transition-all ${
             activeTab === "settings" ? "clay-pill-active" : "clay-pill-inactive"
           }`}
         >
           <Settings className="w-4 h-4" />
+          <span className="truncate">Ajustes</span>
         </button>
       </div>
 
@@ -457,6 +509,178 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      ) : activeTab === "analytics" ? (
+        /* TAB MÉTRICAS Y VISITAS */
+        <div className="space-y-4 flex-1">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
+              <Users className="w-4 h-4 text-blue-600" />
+              Estadísticas de Acceso y Visitas
+            </h2>
+            <button
+              onClick={loadAnalytics}
+              disabled={loadingAnalytics}
+              className="p-1.5 rounded-lg bg-white shadow-clay-sm text-slate-600 hover:text-blue-600 active:scale-90"
+              title="Refrescar métricas"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingAnalytics ? "animate-spin" : ""}`} />
+            </button>
+          </div>
+
+          {loadingAnalytics && !analytics ? (
+            <div className="py-16 text-center">
+              <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600 mb-2" />
+              <p className="text-xs font-semibold text-slate-500">Cargando métricas de la web...</p>
+            </div>
+          ) : analytics ? (
+            <div className="space-y-3.5">
+              {/* 4 Clay KPI Cards Grid */}
+              <div className="grid grid-cols-2 gap-2.5">
+                {/* Total Unique Visitors */}
+                <div className="clay-card p-3.5 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-slate-500">Visitantes Únicos</span>
+                    <Users className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div className="mt-2">
+                    <p className="text-2xl font-black text-slate-900 leading-none">
+                      {analytics.uniqueVisitors}
+                    </p>
+                    <span className="text-[10px] text-slate-400">Total histórico</span>
+                  </div>
+                </div>
+
+                {/* Total Page Views / Scrolls */}
+                <div className="clay-card p-3.5 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-slate-500">Vistas / Scrolls</span>
+                    <Eye className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <div className="mt-2">
+                    <p className="text-2xl font-black text-slate-900 leading-none">
+                      {analytics.totalViews}
+                    </p>
+                    <span className="text-[10px] text-slate-400">Impresiones totales</span>
+                  </div>
+                </div>
+
+                {/* Visitors Today */}
+                <div className="clay-card p-3.5 flex flex-col justify-between bg-gradient-to-br from-blue-50/60 to-white">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-blue-900">Visitantes Hoy</span>
+                    <Calendar className="w-4 h-4 text-blue-700" />
+                  </div>
+                  <div className="mt-2">
+                    <p className="text-2xl font-black text-blue-700 leading-none">
+                      {analytics.uniqueToday}
+                    </p>
+                    <span className="text-[10px] text-blue-600/70 font-semibold">Personas hoy</span>
+                  </div>
+                </div>
+
+                {/* Views Today */}
+                <div className="clay-card p-3.5 flex flex-col justify-between bg-gradient-to-br from-emerald-50/60 to-white">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-emerald-900">Vistas Hoy</span>
+                    <TrendingUp className="w-4 h-4 text-emerald-700" />
+                  </div>
+                  <div className="mt-2">
+                    <p className="text-2xl font-black text-emerald-700 leading-none">
+                      {analytics.viewsToday}
+                    </p>
+                    <span className="text-[10px] text-emerald-600/70 font-semibold">Sesiones hoy</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Last 7 Days Activity Visual Bars */}
+              <div className="clay-card p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wide">
+                    Actividad de los Últimos 7 Días
+                  </h3>
+                  <span className="text-[10px] font-semibold text-slate-400">Vistas diarias</span>
+                </div>
+
+                <div className="flex items-end justify-between gap-1.5 h-28 pt-4 pb-1">
+                  {analytics.last7Days.map((d) => {
+                    const maxVal = Math.max(...analytics.last7Days.map((x) => x.views), 1);
+                    const heightPercent = Math.max(12, Math.round((d.views / maxVal) * 100));
+
+                    return (
+                      <div key={d.date_str} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                        <span className="text-[9px] font-bold text-blue-800">{d.views}</span>
+                        <div
+                          className="w-full max-w-[28px] rounded-t-lg bg-gradient-to-t from-blue-700 to-sky-400 shadow-sm transition-all duration-300"
+                          style={{ height: `${heightPercent}%` }}
+                        />
+                        <span className="text-[9px] font-semibold text-slate-500 capitalize truncate w-full text-center">
+                          {d.day_name}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Recent Access Log */}
+              <div className="clay-card p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-slate-500" />
+                    Últimos Accesos Registrados
+                  </h3>
+                  <span className="text-[10px] text-slate-400">En tiempo real</span>
+                </div>
+
+                {analytics.recentActivity.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic text-center py-4">
+                    Aún no hay visitas registradas.
+                  </p>
+                ) : (
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    {analytics.recentActivity.map((log) => {
+                      const dateFormatted = new Date(log.created_at).toLocaleString("es", {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      });
+
+                      return (
+                        <div
+                          key={log.id}
+                          className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg bg-blue-100/70 text-blue-700 flex items-center justify-center shrink-0">
+                              <Smartphone className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-slate-800 leading-tight">
+                                {log.device}
+                              </p>
+                              <p className="text-[10px] text-slate-400 font-mono">
+                                ID: {log.visitor_id.substring(0, 10)}...
+                              </p>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-semibold text-slate-500">
+                            {dateFormatted}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="clay-card p-6 text-center text-xs text-slate-500">
+              No se pudieron cargar las estadísticas.
             </div>
           )}
         </div>

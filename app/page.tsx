@@ -7,6 +7,7 @@ import { CategoryPills } from "@/components/CategoryPills";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductDetailModal } from "@/components/ProductDetailModal";
 import { WhatsAppFloatingBar } from "@/components/WhatsAppFloatingBar";
+import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 import { Loader2, PackageSearch, RefreshCw } from "lucide-react";
 
 export default function CatalogPage() {
@@ -122,6 +123,7 @@ export default function CatalogPage() {
 
   return (
     <div className="flex-1 flex flex-col">
+      <AnalyticsTracker />
       {/* Sticky Header & Search */}
       <Navbar
         searchQuery={searchQuery}
