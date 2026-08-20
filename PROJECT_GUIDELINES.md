@@ -1,11 +1,11 @@
 # 📱 Directrices Maestras del Proyecto - Catálogo Móvil Claymorphism
 
-Este documento define la arquitectura, diseño visual, contratos de datos, seguridad y reglas de desarrollo para mantener el enfoque y la consistencia en el proyecto.
+Este documento define la arquitectura, diseño visual, contratos de datos, analíticas, seguridad y reglas de desarrollo para mantener el enfoque y la consistencia en el proyecto.
 
 ---
 
 ## 🎯 1. Propósito y Alcance
-- **Objetivo:** Aplicación web mobile-first de catálogo de productos con diseño **Claymorphism** en modo claro (Blanco, Azul Metálico y Negro carbón), visualización de precios multidivisa (Dólares USD, Pesos Colombianos COP y Bolívares VES), selección múltiple para cotización directa en WhatsApp con cálculo de totales, y panel de administración oculto con CRUD integral y gestión en la nube (NeonDB PostgreSQL y Cloudinary).
+- **Objetivo:** Aplicación web mobile-first de catálogo de productos con diseño **Claymorphism** en modo claro (Blanco, Azul Metálico y Negro carbón), visualización de precios multidivisa (Dólares USD, Pesos Colombianos COP y Bolívares VES), métricas de visitantes en tiempo real en el panel admin, selección múltiple para cotización directa en WhatsApp, y panel de administración oculto con CRUD integral y gestión en la nube (NeonDB PostgreSQL y Cloudinary).
 - **Entorno de Despliegue:** Netlify (vía GitHub: `https://github.com/BurgosDeveloper/chatbot-im.git`).
 - **Filosofía de Datos:** **100% SQL en PostgreSQL (NeonDB)**. No se utilizan archivos JSON locales de prueba ni mocks temporales.
 
@@ -19,31 +19,6 @@ Este documento define la arquitectura, diseño visual, contratos de datos, segur
 - **Superficie de Tarjetas (Clay):** `#FFFFFF` con degradados sutiles hacia `#F1F5F9`.
 - **Textos y Contraste:** `#0F172A` (Slate 900) para títulos y `#334155` (Slate 700) para descripciones y metadatos.
 - **Estados de Stock:** Verde esmeralda `#10B981` (Disponible) y Rojo carmesí `#EF4444` (Agotado).
-
-### Fórmulas de Sombras y Relieve Claymorphism
-- **Clay Card:**
-  ```css
-  box-shadow: 
-    8px 8px 18px rgba(163, 177, 198, 0.35),
-    -8px -8px 18px rgba(255, 255, 255, 0.95),
-    inset 2px 2px 4px rgba(255, 255, 255, 0.7);
-  border-radius: 1.5rem; /* 24px */
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  ```
-- **Clay Metallic Button:**
-  ```css
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 50%, #1e40af 100%);
-  box-shadow: 
-    6px 6px 14px rgba(37, 99, 235, 0.35),
-    -4px -4px 10px rgba(255, 255, 255, 0.8),
-    inset 1px 1px 2px rgba(255, 255, 255, 0.4);
-  ```
-- **Clay Inset (Inputs y Filtros activos):**
-  ```css
-  box-shadow: 
-    inset 4px 4px 8px rgba(163, 177, 198, 0.35),
-    inset -4px -4px 8px rgba(255, 255, 255, 0.9);
-  ```
 
 ---
 
@@ -71,7 +46,7 @@ CREATE TABLE IF NOT EXISTS products (
     code VARCHAR(50) UNIQUE NOT NULL,
     stock INTEGER NOT NULL DEFAULT 0,
     price NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    currency VARCHAR(10) NOT NULL DEFAULT 'USD', -- 'USD', 'COP', 'VES'
+    currency VARCHAR(10) NOT NULL DEFAULT 'USD',
     description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -90,33 +65,40 @@ CREATE TABLE IF NOT EXISTS app_settings (
     key VARCHAR(50) PRIMARY KEY,
     value TEXT NOT NULL
 );
--- Keys:
--- 'whatsapp_number': Ej: '584120000000'
--- 'rate_usd_cop': Valor de 1 USD en Pesos (ej: '4000')
--- 'rate_usd_ves': Valor de 1 USD en Bolívares (ej: '40')
+
+-- 5. Métricas y Analíticas de Visitas
+CREATE TABLE IF NOT EXISTS page_views (
+    id SERIAL PRIMARY KEY,
+    visitor_id VARCHAR(100) NOT NULL,
+    path VARCHAR(255) NOT NULL DEFAULT '/',
+    user_agent TEXT,
+    ip_address VARCHAR(100),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_page_views_created_at ON page_views(created_at);
+CREATE INDEX IF NOT EXISTS idx_page_views_visitor_id ON page_views(visitor_id);
 ```
 
 ---
 
-## 💱 4. Reglas de Conversión de Monedas
-
-1. El administrador ingresa el precio del producto y selecciona la **moneda base** (`USD`, `COP` o `VES`).
-2. El sistema utiliza las tasas configuradas en el panel para calcular y mostrar los 3 valores:
-   - **USD ($)**: Formato estándar estadounidense `$10.00`.
-   - **COP ($ COP)**: Formato redondeado con separadores `$40.000 COP`.
-   - **VES (Bs.)**: Formato venezolano `Bs. 400,00`.
-3. Cada tarjeta de producto y modal muestra simultáneamente los 3 montos.
-4. El carrito y el mensaje de WhatsApp calculan el total del pedido en las 3 monedas.
+## 📊 4. Sistema de Métricas y Analíticas
+- **Seguimiento Automático:** Cada usuario que accede o navega por el catálogo activa un registro anónimo en `page_views`.
+- **Métricas en Dashboard Admin:**
+  - Visitantes únicos totales e históricos.
+  - Vistas / Scrolls totales acumulados.
+  - Visitantes y vistas del día de hoy.
+  - Gráfico interactivo con desglose de actividad de los últimos 7 días.
+  - Registro cronológico de últimos accesos con tipo de dispositivo (Android, iPhone, Windows, Mac).
 
 ---
 
 ## ☁️ 5. Reglas de Integración con Cloudinary
 
 - **Cloud Name:** `dhqskqkeb`
-- **API Key:** `37291779797679`
+- **API Key:** `372917197797679`
 - **API Secret:** `HckeHLZNi7IZnca8kaxGTVmUQbs`
 - **Regla de Oro de Limpieza:**
-  1. Al **crear** un producto: Subir a Cloudinary (carpeta `chatbot_im_products`) y persistir `image_url` y `image_public_id` en PostgreSQL.
+  1. Al **crear** un producto: Subir a Cloudinary (`chatbot_im_products`) y persistir `image_url` y `image_public_id` en PostgreSQL.
   2. Al **eliminar** un producto: Obtener `image_public_id` y ejecutar `cloudinary.v2.uploader.destroy(public_id)` antes de borrar el registro en PostgreSQL.
   3. Al **actualizar** la imagen de un producto: Eliminar la imagen anterior en Cloudinary vía `destroy(old_public_id)` y subir la nueva imagen.
 
@@ -124,54 +106,31 @@ CREATE TABLE IF NOT EXISTS app_settings (
 
 ## 🔐 6. Seguridad y Autenticación del Administrador
 
-- **Ruta Secreta:** `/admin/login` (no accesible desde enlaces de la interfaz pública).
+- **Ruta Secreta:** `/admin/login` (sin enlaces públicos).
 - **Panel:** `/admin/dashboard`.
 - **Sesión:**
-  - Token JWT firmado en el servidor con expiración de 2 horas.
-  - Almacenamiento en Cookie `admin_token` con atributos `HttpOnly`, `SameSite=Lax`, `Secure`.
-  - Temporizador de inactividad de 15 minutos en el cliente: si el usuario no interactúa (movimiento, clicks, teclas), se realiza auto-logout preventivo.
+  - Token JWT en Cookie `admin_token` con atributos `HttpOnly`, `SameSite=Lax`, `Secure`.
+  - Temporizador de inactividad de 15 minutos en el cliente con auto-logout preventivo.
 
 ---
 
-## 📲 7. Integración y Formato del Mensaje de WhatsApp
+## 🚀 7. Guía Paso a Paso para Despliegue en Producción (Netlify)
 
-Al hacer click en **"Preguntar en WhatsApp"**:
-1. Recolecta todos los productos seleccionados con cantidades > 0.
-2. Construye un mensaje limpio y amigable con precios y total estimado:
-   ```text
-   👋 *¡Hola! Vengo de su catálogo web y me interesa consultar por los siguientes productos:*
-
-   🛒 *LISTA DE CONSULTA (2 artículos):*
-   1️⃣ [Cód: CAM-001] *Camisa Azul*
-      ↳ Cant: *2* unid. ($20.00 / $80.000 COP / Bs. 800,00)
-
-   💰 *TOTAL ESTIMADO:*
-   • *$20.00*
-   • *$80.000 COP*
-   • *Bs. 800,00*
-
-   💬 *¿Tienen disponibilidad inmediata y cuáles son los métodos de pago y entrega?* ¡Muchas gracias!
-   ```
-3. Codifica la URL y redirige a: `https://wa.me/{WHATSAPP_NUMBER}?text={ENCODED_MESSAGE}`.
-
----
-
-## 🚀 8. Guía de Ejecución y Despliegue
-
-### Entorno Local y Red LAN (Móvil)
-- Para probar desde un celular en la misma red WiFi:
-  ```bash
-  npm run dev
-  ```
-- Ingresar desde el navegador del celular a: `http://192.168.0.106:3000`.
-
-### Despliegue en Netlify
-1. Conectar el repositorio `https://github.com/BurgosDeveloper/chatbot-im.git` en Netlify.
-2. Configurar variables de entorno en Netlify:
-   - `DATABASE_URL`: `postgresql://neondb_owner:npg_fsJdkqw56uTg@ep-wispy-tooth-aw0dcu0b-pooler.c-12.us-east-1.aws.neon.tech/neondb?sslmode=require`
-   - `CLOUDINARY_CLOUD_NAME`: `dhqskqkeb`
-   - `CLOUDINARY_API_KEY`: `37291779797679`
-   - `CLOUDINARY_API_SECRET`: `HckeHLZNi7IZnca8kaxGTVmUQbs`
-   - `JWT_SECRET`: Llave secreta para JWT.
-3. Build command: `npm run build`
-4. Publish directory: `.next`
+1. Ingresa a **[Netlify](https://app.netlify.com/)** e inicia sesión con tu cuenta de GitHub.
+2. Haz clic en el botón azul **"Add new site"** y selecciona **"Import an existing project"**.
+3. Selecciona **GitHub** como proveedor Git y autoriza el acceso a tu repositorio **`BurgosDeveloper/chatbot-im`**.
+4. En la pantalla de configuración de despliegue:
+   - **Branch to deploy:** `main`
+   - **Build command:** `npm run build`
+   - **Publish directory:** `.next`
+5. Haz clic en **"Environment variables" (Variables de entorno)** y añade exactamente estas variables:
+   - `DATABASE_URL` = `postgresql://neondb_owner:npg_fsJdkqw56uTg@ep-wispy-tooth-aw0dcu0b-pooler.c-12.us-east-1.aws.neon.tech/neondb?sslmode=require`
+   - `CLOUDINARY_CLOUD_NAME` = `dhqskqkeb`
+   - `CLOUDINARY_API_KEY` = `372917197797679`
+   - `CLOUDINARY_API_SECRET` = `HckeHLZNi7IZnca8kaxGTVmUQbs`
+   - `JWT_SECRET` = `chatbot_im_jwt_secret_key_super_secure_2026_x89a`
+   - `ADMIN_INITIAL_USER` = `admin`
+   - `ADMIN_INITIAL_PASS` = `admin2026!`
+   - `DEFAULT_WHATSAPP_NUMBER` = `584120000000`
+6. Haz clic en **"Deploy chatbot-im"**.
+7. ¡Listo! Netlify compilará el proyecto y en 1 minuto te entregará tu URL de producción con HTTPS activo.
