@@ -143,3 +143,17 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+/* Hide Netlify Feedback Drawer, Badge & Previews */
+netlify-drawer,
+#netlify-drawer,
+#netlify-badge,
+[data-netlify-deploy-preview-banner],
+[class*="netlify-feedback"],
+[class*="netlify-drawer"],
+iframe[src*="netlify"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
