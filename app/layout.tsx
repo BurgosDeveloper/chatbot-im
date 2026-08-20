@@ -4,6 +4,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Catálogo Exclusivo",
   description: "Catálogo móvil interactivo con pedidos directos a WhatsApp.",
+  icons: {
+    icon: "/icono.png",
+    apple: "/icono.png",
+  },
 };
 
 export const viewport: Viewport = {

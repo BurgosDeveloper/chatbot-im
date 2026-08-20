@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Search, ShoppingBag, X } from "lucide-react";
+import { Search, X } from "lucide-react";
+import Image from "next/image";
 
 interface NavbarProps {
   searchQuery: string;
@@ -20,9 +21,15 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header className="sticky top-0 z-40 px-4 pt-4 pb-3 backdrop-blur-md bg-[#f0f4f8]/90">
       {/* Top Brand Bar */}
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-700 via-blue-600 to-sky-400 flex items-center justify-center shadow-[4px_4px_10px_rgba(37,99,235,0.35),-2px_-2px_6px_rgba(255,255,255,0.9)] border border-white/40">
-            <ShoppingBag className="w-5 h-5 text-white" />
+        <div className="flex items-center gap-3">
+          <div className="relative w-11 h-11 rounded-2xl bg-white p-1 flex items-center justify-center shadow-clay border border-white/90 overflow-hidden shrink-0">
+            <Image
+              src="/icono.png"
+              alt="Logo"
+              fill
+              className="object-contain p-1"
+              priority
+            />
           </div>
           <div>
             <h1 className="text-xl font-extrabold tracking-tight text-metallic">

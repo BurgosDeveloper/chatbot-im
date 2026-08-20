@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Lock, User, ShieldCheck, Loader2, AlertCircle, ArrowLeft } from "lucide-react";
+import { Lock, User, Loader2, AlertCircle, ArrowLeft } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 function LoginForm() {
@@ -56,10 +57,16 @@ function LoginForm() {
       </Link>
 
       <div className="clay-card p-6 sm:p-8 space-y-6">
-        {/* Header Icon */}
+        {/* Header Icon / Logo */}
         <div className="text-center space-y-2">
-          <div className="w-14 h-14 mx-auto rounded-3xl bg-gradient-to-br from-blue-700 via-blue-600 to-sky-400 flex items-center justify-center shadow-[6px_6px_14px_rgba(37,99,235,0.35),-3px_-3px_8px_rgba(255,255,255,0.9)] border border-white/40">
-            <ShieldCheck className="w-7 h-7 text-white" />
+          <div className="relative w-16 h-16 mx-auto rounded-3xl bg-white p-2 flex items-center justify-center shadow-clay border border-white/90 overflow-hidden">
+            <Image
+              src="/icono.png"
+              alt="Logo"
+              fill
+              className="object-contain p-2"
+              priority
+            />
           </div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
             Panel Administrativo
