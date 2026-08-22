@@ -94,6 +94,59 @@ export async function initDb() {
       CREATE INDEX IF NOT EXISTS idx_page_views_visitor_id ON page_views(visitor_id);
     `);
 
+    // 6. Bot Orders & Conversation History tables (for n8n AI Chatbot)
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS bot_orders (
+        id SERIAL PRIMARY KEY,
+        conversation_id VARCHAR(100) NOT NULL,
+        phone VARCHAR(50) NOT NULL,
+        contact_name VARCHAR(150),
+        status VARCHAR(50) NOT NULL DEFAULT 'building', -- 'building', 'confirmed', 'cancelled', 'delivered'
+        total_usd NUMERIC(12, 2) DEFAULT 0,
+        total_cop NUMERIC(14, 2) DEFAULT 0,
+        total_ves NUMERIC(14, 2) DEFAULT 0,
+        delivery_address TEXT,
+        payment_method TEXT,
+        notes TEXT,
+        confirmed_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_bot_orders_conv_status ON bot_orders(conversation_id, status);
+
+      CREATE TABLE IF NOT EXISTS bot_order_items (
+        id SERIAL PRIMARY KEY,
+        order_id INTEGER REFERENCES bot_orders(id) ON DELETE CASCADE,
+        product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
+        product_name VARCHAR(255) NOT NULL,
+        code VARCHAR(50),
+        quantity INTEGER NOT NULL DEFAULT 1,
+        unit_price NUMERIC(12, 2) NOT NULL DEFAULT 0,
+        currency VARCHAR(10) NOT NULL DEFAULT 'USD',
+        subtotal_usd NUMERIC(12, 2) NOT NULL DEFAULT 0,
+        subtotal_cop NUMERIC(14, 2) NOT NULL DEFAULT 0,
+        subtotal_ves NUMERIC(14, 2) NOT NULL DEFAULT 0,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS bot_conversation_history (
+        id SERIAL PRIMARY KEY,
+        conversation_id VARCHAR(100) NOT NULL,
+        phone VARCHAR(50),
+        role VARCHAR(20) NOT NULL, -- 'user', 'assistant'
+        content TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_bot_conv_history ON bot_conversation_history(conversation_id, created_at);
+
+      CREATE TABLE IF NOT EXISTS bot_operator_sessions (
+        phone VARCHAR(50) PRIMARY KEY,
+        conversation_id VARCHAR(100),
+        chatwoot_account_id VARCHAR(50),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     // Default Settings (WhatsApp, USD to COP rate, USD to VES rate)
     const defaultWhatsapp = process.env.DEFAULT_WHATSAPP_NUMBER || "584120000000";
     await db.query(
